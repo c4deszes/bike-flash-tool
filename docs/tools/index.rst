@@ -1,0 +1,7 @@
+Tools
+=====
+
+.. toctree::
+
+    cli
+    ui
