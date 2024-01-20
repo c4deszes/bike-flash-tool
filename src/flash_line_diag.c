@@ -41,7 +41,7 @@ static bool _FLASH_LINE_ReadSignature_Handler(uint16_t request, uint8_t* size, u
 static void _FLASH_LINE_OnPageWriteHandler(uint16_t request, uint8_t size, uint8_t* payload) {
     // TODO: validate size, etc.
     uint32_t address = payload[0] | (((uint32_t)payload[1]) << 8) | (((uint32_t)payload[2]) << 16) | (((uint32_t)payload[3]) << 24);
-    FLASH_BL_OnPageWrite(address, payload + sizeof(uint32_t));
+    FLASH_BL_OnPageWrite(address, size - 4, payload + sizeof(uint32_t));
 }
 
 static bool _FLASH_LINE_GetWriteStatusHandler(uint16_t request, uint8_t* size, uint8_t* payload) {
@@ -79,10 +79,10 @@ fl_BootSignature_t* _FLASH_BL_ReadSignature_Default(void) {
 }
 fl_BootSignature_t* FLASH_BL_ReadSignature(void) __attribute__((weak,alias("_FLASH_BL_ReadSignature_Default")));
 
-void _FLASH_BL_OnPageWrite_Default(uint32_t address, uint8_t* data) {
+void _FLASH_BL_OnPageWrite_Default(uint32_t address, uint8_t size, uint8_t* data) {
 
 }
-void FLASH_BL_OnPageWrite(uint32_t address, uint8_t* data) __attribute__((weak,alias("_FLASH_BL_OnPageWrite_Default")));
+void FLASH_BL_OnPageWrite(uint32_t address, uint8_t size, uint8_t* data) __attribute__((weak,alias("_FLASH_BL_OnPageWrite_Default")));
 
 uint8_t _FLASH_BL_GetWriteStatus_Default(void) {
     return FLASH_LINE_PAGE_WRITE_FAILURE;

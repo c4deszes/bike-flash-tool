@@ -11,7 +11,7 @@ extern "C" {
 DEFINE_FFF_GLOBALS;
 
 FAKE_VALUE_FUNC0(fl_BootSignature_t*, FLASH_BL_ReadSignature);
-FAKE_VOID_FUNC2(FLASH_BL_OnPageWrite, uint32_t, uint8_t*);
+FAKE_VOID_FUNC3(FLASH_BL_OnPageWrite, uint32_t, uint8_t, uint8_t*);
 FAKE_VALUE_FUNC0(uint8_t, FLASH_BL_GetWriteStatus);
 
 FAKE_VALUE_FUNC0(uint32_t, LINE_Diag_GetSerialNumber);
@@ -82,7 +82,7 @@ TEST_F(TestFlashLineBootloaderMode, PageWrite) {
     EXPECT_EQ(FLASH_BL_OnPageWrite_fake.call_count, 1);
     EXPECT_EQ(FLASH_BL_OnPageWrite_fake.arg0_val, 0x12345678);
     for (int i = 0; i < 16; i++) {
-        EXPECT_EQ(FLASH_BL_OnPageWrite_fake.arg1_val[i], i);
+        EXPECT_EQ(FLASH_BL_OnPageWrite_fake.arg2_val[i], i);
     }
 }
 

@@ -59,7 +59,7 @@ uint8_t FLASH_BL_EnterBoot(void) {
 
 fl_BootSignature_t* FLASH_BL_ReadSignature(void);
 
-void FLASH_BL_OnPageWrite(uint32_t address, uint8_t* data) {
+void FLASH_BL_OnPageWrite(uint32_t address, uint8_t size, uint8_t* data) {
   Serial.println("Writing page.");
 }
 
