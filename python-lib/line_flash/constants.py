@@ -21,6 +21,7 @@ def bootentry_str(code):
 FLASH_LINE_PAGE_WRITE_SUCCESS = 0x00
 FLASH_LINE_PAGE_WRITE_FAILURE = 0x01
 FLASH_LINE_PAGE_NOT_WRITTEN = 0x02
+FLASH_LINE_PAGE_ADDRESS_ERROR = 0x03
 
 def writestatus_str(code):
     if code == FLASH_LINE_PAGE_WRITE_SUCCESS:
@@ -29,4 +30,6 @@ def writestatus_str(code):
         return 'failure'
     elif code == FLASH_LINE_PAGE_NOT_WRITTEN:
         return 'not-written'
+    elif code == FLASH_LINE_PAGE_ADDRESS_ERROR:
+        return 'addr-error'
     return 'INVALID'

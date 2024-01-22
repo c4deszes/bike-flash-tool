@@ -56,7 +56,7 @@ class FlashTool:
     def get_write_status(self, address: int):
         response = self.master.request(FLASH_LINE_DIAG_APP_WRITE_STATUS | address)
         # TODO: decode response
-        logger.info("Write status %s", response)
+        logger.info("Write status %s", writestatus_str(response[0]))
 
     def exit_bootloader(self, address: int):
         self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address, [0x00])
@@ -71,7 +71,9 @@ class FlashTool:
                 data = list(binary.tobinarray(start=current_address, size=step_size))
 
                 self.write_page(address, current_address, data)
-                #self.get_write_status(address)
+                time.sleep(1)
+                self.get_write_status(address)
+                time.sleep(1)
 
                 current_address += step_size
         pass
