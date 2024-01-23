@@ -31,16 +31,15 @@ can decide whether it's going to, or not.
 Bootloader code
 ---------------
 
+In bootloader mode the peripheral is expected to accept page writes and then respond with the
+status of those writes.
+
 .. code-block:: c
 
     void BOOT_Init() {
         LINE_Transport_Init(true);
         LINE_Diag_Init(address);
-        LINE_FLASH_Init(LINE_FLASH_APPLICATION_MODE);
-    }
-
-    fl_BootSignature_t* FLASH_BL_ReadSignature(void) {
-
+        LINE_FLASH_Init(LINE_FLASH_BOOTLOADER_MODE);
     }
 
     void FLASH_BL_OnPageWrite(uint32_t address, uint8_t* data) {
@@ -53,5 +52,21 @@ Bootloader code
         return writeStatus;
     }
 
-CPM
----
+CMake using CPM/subdirectories
+------------------------------
+
+The CMake project registers it's headers and source files as interface targets, these should be
+linked along with the line-protocol targets.
+
+.. code-block:: cmake
+
+    find_package(Python REQUIRED)
+
+    include(tools/cmake/CPM.cmake)
+    CPMAddPackage("gh:c4deszes/bike-flash-tool#master")
+
+    add_executable(MyApp src/main.c)
+    target_link_libraries(MyApp PUBLIC line-protocol-api line-protocol-sources
+                                       line-protocol-adapter-sources
+                                       flash-line-api flash-line-sources
+    )

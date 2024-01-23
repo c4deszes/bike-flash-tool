@@ -36,7 +36,7 @@ uint8_t FLASH_BL_EnterBoot(void) {
 }
 ```
 
-On the bootloader side there are a few more callbacks that have to be implemented.
+On the bootloader side there are two callbacks that have to be implemented.
 
 ```c
 #include "flash_line_api.h"

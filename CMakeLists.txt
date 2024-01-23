@@ -8,7 +8,7 @@ option(FLASH_LINE_BUILD_TESTS "Enables library test cases" OFF)
 
 # TODO: how does CPM work when it's included multiple times?
 include(tools/cmake/CPM.cmake)
-CPMAddPackage("gh:c4deszes/bike-line-protocol#feature/second-version")
+CPMAddPackage("gh:c4deszes/bike-line-protocol#master")
 
 add_library(flash-line-api INTERFACE)
 target_include_directories(flash-line-api INTERFACE
