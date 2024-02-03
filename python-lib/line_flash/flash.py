@@ -59,22 +59,28 @@ class FlashTool:
         # TODO: decode response
         logger.info("Write status %s", writestatus_str(response[0]))
 
-    def exit_bootloader(self, address: int):
+        # TODO: verify write success
+
+    def exit_bootloader(self, address: int, verify: bool=True):
         self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address, [0x00])
         logger.info("Exiting bootloader.")
+
+        # TODO: verify that the peripheral exited app mode
+        time.sleep(1)   # TODO: wait boot exit time
+        self.master.get_operation_status(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address)
 
     def flash_hex(self, address: int, path: str):
         binary = intelhex.IntelHex(path)
         for (start, stop) in binary.segments():
             current_address = start
             while current_address < stop:
-                step_size = min(stop - current_address, 128 - (current_address % 128), 128)
+                step_size = min(stop - current_address, 64 - (current_address % 64), 64)
                 data = list(binary.tobinarray(start=current_address, size=step_size))
 
                 self.write_page(address, current_address, data)
-                time.sleep(1)
+                time.sleep(1)                   # TODO: wait page write time
                 self.get_write_status(address)
-                time.sleep(1)
+                time.sleep(0.01)
 
                 current_address += step_size
         pass
