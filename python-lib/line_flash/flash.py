@@ -62,12 +62,12 @@ class FlashTool:
         # TODO: verify write success
 
     def exit_bootloader(self, address: int, verify: bool=True):
-        self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address, [0x00])
+        self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address, [])
         logger.info("Exiting bootloader.")
 
         # TODO: verify that the peripheral exited app mode
         time.sleep(1)   # TODO: wait boot exit time
-        self.master.get_operation_status(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address)
+        self.master.get_operation_status(address)
 
     def flash_hex(self, address: int, path: str):
         binary = intelhex.IntelHex(path)
