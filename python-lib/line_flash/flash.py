@@ -38,7 +38,6 @@ class FlashTool:
 
         # TODO: expect bootloader or boot error state
         op_status = self.master.get_operation_status(boot_address)
-        self.master.get_software_version(boot_address)
 
         if op_status != 'boot' and op_status != 'boot_error':
             logger.error("Bootloader didn't enter.")
