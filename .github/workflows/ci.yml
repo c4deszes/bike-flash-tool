@@ -57,7 +57,7 @@ jobs:
       
       - name: Run tests
         working-directory: python-lib
-        run: python -m pytest
+        run: python -m pytest --cov=line_flash --cov-report=xml
 
       # TODO: results and coverage?
       

@@ -12,42 +12,59 @@ class FlashTool:
         self.master = master
 
     def enter_bootloader(self, boot_address: int, app_address: int = None, serial_number: int = None) -> int:
-        if app_address is None and serial_number is None:
-            raise ValueError('Either application number or serial number must be provided.')
+        """
+        Puts a target into boot mode
 
+        When app_address is provided the DIAG_BOOT_ENTRY request will be sent, otherwise the
+        target is expected to be in boot mode already.
+
+        With either app_address or serial_number the target's diagnostic address will be set,
+        otherwise it has to be set beforehand.
+
+        Error is raised if the boot entry is rejected or the target isn't in boot or boot error mode
+        at the end.
+
+        :param boot_address: _description_
+        :type boot_address: int
+        :param app_address: Application diagnostic address, defaults to None
+        :type app_address: int, optional
+        :param serial_number: _description_, defaults to None
+        :type serial_number: int, optional
+        :raises RuntimeError: _description_
+        :return: _description_
+        :rtype: int
+        """
         if app_address is not None:
             try:
                 response = self.master.request(FLASH_LINE_DIAG_BOOT_ENTRY | app_address)
                 if len(response) == 4:
                     received_serial = int.from_bytes(response, 'little')
-                    if received_serial != serial_number:
+                    if serial_number != None and received_serial != serial_number:
                         logger.warning("Provided serial number doesn't match the peripheral's serial (Node=%02X)", app_address)
                     serial_number = received_serial
                     logger.info("Bootloader entry success, node=%01X, serial=%08X", app_address, serial_number)
                 else:
-                    # TODO: decode error code
                     reason = bootentry_str(response[0])
                     logger.error("Bootloader entry rejected (%s)", reason)
+
+                    # TODO: custom error type, message improvement
+                    raise RuntimeError("Bootloader entry rejected.")
 
                 time.sleep(0.5) # TODO: wait boot entry time
             except LineTransportTimeout:
                 logger.info("Bootloader entry no response.")
-        # TODO: if serial number is None then we cannot continue
 
-        self.master.conditional_change_address(serial_number, boot_address)
+        if serial_number:
+            self.master.conditional_change_address(serial_number, boot_address)
 
-        # TODO: expect bootloader or boot error state
         op_status = self.master.get_operation_status(boot_address)
 
         if op_status != 'boot' and op_status != 'boot_error':
             logger.error("Bootloader didn't enter.")
-            # TODO: error type, message improvement
+            # TODO: custom error type, message improvement
             raise RuntimeError("didn't enter")
 
         return boot_address
-
-    def read_signature(self, address: int):
-        pass
 
     def write_page(self, address: int, data_address: int, data: list):
         logger.info("Writing %08X to %08X", data_address, data_address + len(data))
@@ -55,31 +72,41 @@ class FlashTool:
 
     def get_write_status(self, address: int):
         response = self.master.request(FLASH_LINE_DIAG_APP_WRITE_STATUS | address)
-        # TODO: decode response
         logger.info("Write status %s", writestatus_str(response[0]))
 
-        # TODO: verify write success
+        return response[0]
 
     def exit_bootloader(self, address: int, verify: bool=True):
         self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | address, [])
         logger.info("Exiting bootloader.")
 
-        # TODO: verify that the peripheral exited app mode
-        time.sleep(1)   # TODO: wait boot exit time
-        self.master.get_operation_status(address)
+        if verify:
+            time.sleep(1)   # TODO: wait boot exit time
+            op_status = self.master.get_operation_status(address)
 
-    def flash_hex(self, address: int, path: str):
+            if op_status == 'boot' or op_status == 'boot_error':
+                logger.error("Bootloader didn't exit.")
+                # TODO: custom error type, message improvement
+                raise RuntimeError("Boot didn't exit.")
+
+    def flash_hex(self, address: int, path: str, page_size: int = 64, write_time: float = 0.100):
         binary = intelhex.IntelHex(path)
         for (start, stop) in binary.segments():
             current_address = start
             while current_address < stop:
-                step_size = min(stop - current_address, 64 - (current_address % 64), 64)
+                step_size = min(stop - current_address,                         # Capping to end address
+                                page_size - (current_address % page_size),      # Capping to nearest page boundary
+                                page_size)                                      # Capping to page size
                 data = list(binary.tobinarray(start=current_address, size=step_size))
 
                 self.write_page(address, current_address, data)
-                time.sleep(1)                   # TODO: wait page write time
-                self.get_write_status(address)
-                time.sleep(0.01)
+                time.sleep(write_time)
+
+                # TODO: maybe add the ability to retry writes, unless it's address failure
+                if self.get_write_status(address) != FLASH_LINE_PAGE_WRITE_SUCCESS:
+                    logger.error("Error writing page (0x%08X)", current_address)
+                    # TODO: custom error type, message improvement
+                    raise RuntimeError('Error writing page.')
 
                 current_address += step_size
         pass
