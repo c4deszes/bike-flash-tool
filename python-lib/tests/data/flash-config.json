@@ -1,0 +1,19 @@
+[
+    {
+        "node": "Node1",
+        "serial": "0x69696969",
+        "file": "segmented.hex"
+    },
+    {
+        "node": "Node2",
+        "file": "segmented.hex"
+    },
+    {
+        "node": "Node3",
+        "file": "segmented.hex"
+    },
+    {
+        "serial": "0xABCDEF01",
+        "file": "segmented.hex"
+    }
+]

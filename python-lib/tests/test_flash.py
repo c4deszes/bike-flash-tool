@@ -67,13 +67,13 @@ class TestFlashBootExit:
     def test_ExitBootloader_ExitVerifySuccess(self, flash_tool, line_master):
         line_master.get_operation_status.return_value = 'ok'
 
-        flash_tool.exit_bootloader(0x06, verify=True)
+        flash_tool.exit_bootloader(0x06, 0x06, verify=True)
 
     def test_ExitBootloader_ExitVerifyFailure(self, flash_tool, line_master):
         line_master.get_operation_status.return_value = 'boot'
 
         with pytest.raises(RuntimeError):
-            flash_tool.exit_bootloader(0x06, verify=True)
+            flash_tool.exit_bootloader(0x06, 0x06, verify=True)
 
 class TestFlashWriteHex:
 

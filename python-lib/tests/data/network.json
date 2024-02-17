@@ -1,0 +1,24 @@
+{
+    "name": "test-network",
+    "baudrate": 19200,
+    "nodes": {
+        "BodyComputer": {
+            "address": "0x00",
+            "subscribes": [],
+            "publishes": []
+        },
+        "Node1": {
+            "address": "0x01",
+            "subscribes": [],
+            "publishes": []
+        },
+        "Node2": {
+            "address": "0x02",
+            "subscribes": [],
+            "publishes": []
+        }
+    },
+    "requests": {},
+    "encoders": {},
+    "schedules": {}
+}
