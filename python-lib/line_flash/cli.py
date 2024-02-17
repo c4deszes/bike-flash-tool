@@ -28,7 +28,7 @@ def main():
     target_group = parser.add_mutually_exclusive_group(required=True)
     target_group.add_argument('--target', type=str, dest='target')
     target_group.add_argument('--serial', type=lambda x: int(x, base=0), dest='target')
-    target_group.add_argument('--all', action='store_const')
+    target_group.add_argument('--all', action='store_const', const='all')
 
     config_group = parser.add_mutually_exclusive_group(required=True)
     config_group.add_argument('--config', type=str)

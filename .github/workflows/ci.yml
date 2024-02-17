@@ -47,12 +47,12 @@ jobs:
 
       - name: Build sketch
         working-directory: examples/arduino
-        run: arduino-cli compile -b arduino:samd:arduino_zero_edbg --library ../../line-protocol
+        run: arduino-cli compile -b arduino:samd:arduino_zero_edbg --library ../.. --library ../../line-protocol
 
   python_test:
     name: Python Test
     runs-on: ubuntu-latest
-    container: python:3.10
+    container: python:3.11
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,7 +82,7 @@ jobs:
   sphinx_docs:
     name: Documentation
     runs-on: ubuntu-latest
-    container: python:3.10
+    container: python:3.11
     steps:
       - name: Checkout
         uses: actions/checkout@v4
