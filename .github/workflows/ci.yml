@@ -31,6 +31,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout (line-protocol)
+        uses: actions/checkout@v4
+        with:
+          repository: c4deszes/bike-line-protocol
+          path: line-protocol
+
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v1
 
@@ -41,15 +47,25 @@ jobs:
 
       - name: Build sketch
         working-directory: examples/arduino
-        run: arduino-cli compile -b arduino:samd:arduino_zero_edbg --library ../..
+        run: arduino-cli compile -b arduino:samd:arduino_zero_edbg --library ../.. --library ../../line-protocol
 
   python_test:
     name: Python Test
     runs-on: ubuntu-latest
-    container: python:3.10
+    container: python:3.11
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout (line-protocol)
+        uses: actions/checkout@v4
+        with:
+          repository: c4deszes/bike-line-protocol
+          path: line-protocol
+
+      - name: Setup line-protocol
+        working-directory: line-protocol/python-lib
+        run: python -m pip install -e .[dev]
 
       - name: Setup Python library
         working-directory: python-lib
@@ -57,7 +73,7 @@ jobs:
       
       - name: Run tests
         working-directory: python-lib
-        run: python -m pytest
+        run: python -m pytest --cov=line_flash --cov-report=xml
 
       # TODO: results and coverage?
       
@@ -66,7 +82,7 @@ jobs:
   sphinx_docs:
     name: Documentation
     runs-on: ubuntu-latest
-    container: python:3.10
+    container: python:3.11
     steps:
       - name: Checkout
         uses: actions/checkout@v4
