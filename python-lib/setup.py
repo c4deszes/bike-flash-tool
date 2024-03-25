@@ -36,7 +36,8 @@ setup(
     python_requires='!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
     entry_points={
         'console_scripts': [
-            'line-flash=line_flash.cli:main'
+            'line-flash=line_flash.cli:main',
+            'line-flash-ui=line_flash.ui:main'
         ]
     },
     classifiers=[

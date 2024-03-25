@@ -68,9 +68,11 @@ def main():
                     entry = lookup_target(config)
                     flash_tool.enter_bootloader(node.address, node.address, entry.serial if entry else None)
                     flash_tool.flash_hex(node.address, entry.file)
+                    flash_tool.exit_bootloader(node.address, node.address)
                 else:
                     flash_tool.enter_bootloader(node.address, node.address)
                     flash_tool.flash_hex(node.address, args.file)
+                    flash_tool.exit_bootloader(node.address, node.address)
             elif args.config:
                 entry = lookup_target(config)
                 if entry is None:
@@ -79,6 +81,7 @@ def main():
                 # find free address for the device
                 flash_tool.enter_bootloader(0xE, serial_number=entry.serial)
                 flash_tool.flash_hex(0xE, args.file)
+                flash_tool.exit_bootloader(0xE)
             else:
                 logger.error('Unable to determine target parameters.')
                 return 1
@@ -93,13 +96,16 @@ def main():
                     node = network.get_node(args.target)
                     flash_tool.enter_bootloader(node.address, node.address, entry.serial if entry else None)
                     flash_tool.flash_hex(node.address, entry.file)
+                    flash_tool.exit_bootloader(node.address, node.address)
                 else:
                     # find free address for the device
                     flash_tool.enter_bootloader(0xE, serial_number=entry.serial)
                     flash_tool.flash_hex(0xE, entry.file)
+                    flash_tool.exit_bootloader(0xE)
             else:
                 flash_tool.enter_bootloader(0xE, serial_number=args.target)
                 flash_tool.flash_hex(0xE, args.file)
+                flash_tool.exit_bootloader(0xE)
 
     return 0
 
