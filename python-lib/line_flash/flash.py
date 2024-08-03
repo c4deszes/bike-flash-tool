@@ -7,6 +7,16 @@ import intelhex
 
 logger = logging.getLogger(__name__)
 
+class FlashBootException(Exception):
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
+class FlashWriteException(Exception):
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
 class FlashTool:
 
     def __init__(self, master: LineMaster) -> None:
@@ -47,7 +57,7 @@ class FlashTool:
                     logger.error("Bootloader entry rejected (%s)", reason)
 
                     # TODO: custom error type, message improvement
-                    raise RuntimeError("Bootloader entry rejected.")
+                    raise FlashBootException("Bootloader entry rejected.")
 
                 time.sleep(0.5) # TODO: wait boot entry time
             except LineTransportTimeout:
@@ -55,13 +65,14 @@ class FlashTool:
 
         if serial_number:
             self.master.conditional_change_address(serial_number, boot_address)
+            time.sleep(0.1)
 
         op_status = self.master.get_operation_status(boot_address)
 
         if op_status != 'boot' and op_status != 'boot_error':
             logger.error("Bootloader didn't enter.")
             # TODO: custom error type, message improvement
-            raise RuntimeError("didn't enter")
+            raise FlashBootException("didn't enter")
 
     def write_page(self, address: int, data_address: int, data: List[int]):
         """
@@ -118,7 +129,7 @@ class FlashTool:
             if op_status == 'boot' or op_status == 'boot_error':
                 logger.error("Bootloader didn't exit.")
                 # TODO: custom error type, message improvement
-                raise RuntimeError("Boot didn't exit.")
+                raise FlashBootException("Boot didn't exit.")
 
     def flash_hex(self, address: int, path: str, page_size: int = 64, write_time: float = 0.100):
         """
@@ -155,7 +166,7 @@ class FlashTool:
                 if self.get_write_status(address) != FLASH_LINE_PAGE_WRITE_SUCCESS:
                     logger.error("Error writing page (0x%08X)", current_address)
                     # TODO: custom error type, message improvement
-                    raise RuntimeError('Error writing page.')
+                    raise FlashWriteException('Error writing page.')
 
                 current_address += step_size
         pass

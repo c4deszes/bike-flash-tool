@@ -14,10 +14,10 @@ from line_protocol.protocol.transport import LineSerialTransport, LineTransportT
 logger = logging.getLogger(__name__)
 
 def lookup_serial(entries, serial):
-    next(next(x for x in entries if x.serial == serial), None)
+    next((x for x in entries if x.serial == serial), None)
 
 def lookup_target(entries, target):
-    next(next(x for x in entries if x.node == target), None)
+    next((x for x in entries if x.node == target), None)
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
@@ -65,7 +65,8 @@ def main():
             if args.network:
                 node = network.get_node(args.target)
                 if args.config:
-                    entry = lookup_target(config)
+                    print(config)
+                    entry = lookup_target(config, args.target)
                     flash_tool.enter_bootloader(node.address, node.address, entry.serial if entry else None)
                     flash_tool.flash_hex(node.address, entry.file)
                     flash_tool.exit_bootloader(node.address, node.address)
@@ -74,7 +75,7 @@ def main():
                     flash_tool.flash_hex(node.address, args.file)
                     flash_tool.exit_bootloader(node.address, node.address)
             elif args.config:
-                entry = lookup_target(config)
+                entry = lookup_target(config, args.target)
                 if entry is None:
                     logger.error("No target found in config.")
                     return 1
@@ -103,7 +104,7 @@ def main():
                     flash_tool.flash_hex(0xE, entry.file)
                     flash_tool.exit_bootloader(0xE)
             else:
-                flash_tool.enter_bootloader(0xE, serial_number=args.target)
+                flash_tool.enter_bootloader(0xE, app_address=0xE, serial_number=args.target)
                 flash_tool.flash_hex(0xE, args.file)
                 flash_tool.exit_bootloader(0xE)
 
