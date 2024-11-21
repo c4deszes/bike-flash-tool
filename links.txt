@@ -1,0 +1,8 @@
+https://doc.qt.io/qtforpython-6/overviews/model-view-programming.html
+https://doc-snapshots.qt.io/qtforpython-dev/overviews/modelview.html
+
+https://github.com/pyqt/examples
+https://github.com/pyqt/examples/blob/_/src/02%20PyQt%20Widgets/main.py
+https://github.com/pyqt/examples/blob/_/src/03%20QVBoxLayout%20PyQt6/main.py
+https://doc.qt.io/qtforpython-6/overviews/model-view-programming.html
+https://doc-snapshots.qt.io/qtforpython-dev/overviews/modelview.html
