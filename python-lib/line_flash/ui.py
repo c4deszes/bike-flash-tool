@@ -38,15 +38,9 @@ class FlashThread(QThread):
                                         app_address=self.app_address if self.app_address != 0 else None,
                                         serial_number=self.serial_number if self.serial_number != 0 else None)
                 self.log_message.emit("Entered bootloader.")
-                
-                #flash_tool.flash_hex(self.boot_address, self.hex_file, progress_callback=self.on_progress)
+
                 try:
-                    time.sleep(1)
-                    for i in range(100):
-                        self.log_message.emit(f"Progress: {i}%")
-                        self.progress.emit(100, i)
-                        time.sleep(0.1)
-                    self.progress.emit(100, 100)
+                    flash_tool.flash_hex(self.boot_address, self.hex_file, on_progess=self.on_progress)
                     self.log_message.emit("Flashing complete.")
                 except Exception as e:
                     self.log_message.emit(f"Flashing failed: {type(e).__name__}")
@@ -62,7 +56,7 @@ class FlashThread(QThread):
                     self.failed.emit()
 
         except Exception as e:
-            self.log_message.emit(f"Flashing failed: {type(e).__name__}")
+            self.log_message.emit(f"Failure: {type(e).__name__}")
             self.log_message.emit(str(e))
             self.failed.emit()
 
