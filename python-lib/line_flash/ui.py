@@ -1,211 +1,259 @@
-import customtkinter
-from tkinter import messagebox
-from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-from threading import Thread
-import serial.tools.list_ports
-import serial
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import QThread, pyqtSignal
+import time
 import logging
 
 from line_flash.flash import FlashTool
 from line_protocol.protocol.master import LineMaster
 from line_protocol.protocol.transport import LineSerialTransport, LineTransportTimeout
 
-class App(customtkinter.CTk):
+class FlashThread(QThread):
+    finished = pyqtSignal()
+    failed = pyqtSignal()
+    progress = pyqtSignal(int, int)
+    log_message = pyqtSignal(str)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-        logging.basicConfig(level=logging.DEBUG)
+        self.port = "COM1"
+        self.baudrate = 19200
+        self.app_address = 0
+        self.boot_address = 0xE
+        self.serial_number = 0
+        self.hex_file = None
 
-        # Window settings
-        self.title("LINE FlashTool")
-        self.geometry("400x400")
-        self.grid_columnconfigure((0), weight=1)
+    # TODO: might need partial
+    def on_progress(self, size, progress, current_address, step_size):
+        self.progress.emit(size, progress)
 
-        ports = serial.tools.list_ports.comports()
-
-        self.grid_rowconfigure((0, ), weight=1)
-        self.grid_rowconfigure((1, ), weight=0)
-
-        self.frame_Settings = customtkinter.CTkFrame(self)
-        self.frame_Settings.grid(row=0, column=0, sticky='new')
-        self.frame_Settings.grid_columnconfigure((0, ), weight=1)
-
-        self.frame_Config = customtkinter.CTkFrame(self.frame_Settings)
-        self.frame_Config.grid(row=0, column=0, sticky='ew')
-
-        self.combo_PortSelect = customtkinter.CTkComboBox(self.frame_Config, values=[x.device for x in ports])
-        self.combo_PortSelect.grid(row=0, column=0, sticky='w', padx=10, pady=10)
-
-        self.combo_BaudSelect = customtkinter.CTkComboBox(self.frame_Config, values=['9600', '19200', '56700', '115200'])
-        self.combo_BaudSelect.grid(row=0, column=1, sticky='e', padx=10, pady=10)
-        self.combo_BaudSelect.set('19200')
-
-        self.frame_File = customtkinter.CTkFrame(self.frame_Settings)
-        self.frame_File.grid(row=1, column=0, sticky='ew')
-        self.frame_File.grid_columnconfigure(0, weight=1)
-        self.frame_File.grid_columnconfigure(1, weight=0)
-
-        self.text_ProgramFile = customtkinter.CTkLabel(self.frame_File, text='No file selected')
-        self.text_ProgramFile.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
-
-        self.button_ProgramFileSelect = customtkinter.CTkButton(self.frame_File, text='Select', command=self.select_program, width=70)
-        self.button_ProgramFileSelect.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
-
-        integer_validator = (self.register(self.validate_integer))
-
-        # Application address selection
-        self.frame_App = customtkinter.CTkFrame(self.frame_Settings)
-        self.frame_App.grid(row=2, column=0, sticky='we')
-        self.frame_App.grid_columnconfigure((1, ), weight=1)
-
-        self.label_AppAddress = customtkinter.CTkLabel(self.frame_App, text='App. address:')
-        self.label_AppAddress.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
-
-        self.input_AppAddress = customtkinter.CTkEntry(self.frame_App, placeholder_text='N/A', validate='all', validatecommand=(integer_validator, '%P'))
-        self.input_AppAddress.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
-
-        self.button_ClearAppAddress = customtkinter.CTkButton(self.frame_App, text='Clear', command=self.clear_app_address, width=70)
-        self.button_ClearAppAddress.grid(row=0, column=2, sticky='ew', padx=10, pady=10)
-
-        # Serial number selection
-        self.frame_Serial = customtkinter.CTkFrame(self.frame_Settings)
-        self.frame_Serial.grid(row=3, column=0, sticky='ew')
-        self.frame_Serial.grid_columnconfigure((1, ), weight=1)
-
-        self.label_SerialNumber = customtkinter.CTkLabel(self.frame_Serial, text='Serial:')
-        self.label_SerialNumber.grid(row=0, column=0, sticky='ew', padx=10, pady=10)
-
-        self.input_SerialNumber = customtkinter.CTkEntry(self.frame_Serial, placeholder_text='N/A', validate='all', validatecommand=(integer_validator, '%P'))
-        self.input_SerialNumber.grid(row=0, column=1, sticky='ew', padx=10, pady=10)
-
-        self.button_ClearSerialNumber = customtkinter.CTkButton(self.frame_Serial, text='Clear', command=self.clear_serial_number, width=70)
-        self.button_ClearSerialNumber.grid(row=0, column=2, sticky='ew', padx=10, pady=10)
-
-        # Uploading
-        self.frame_Upload = customtkinter.CTkFrame(self)
-        self.frame_Upload.grid(row=1, column=0, sticky='news')
-        self.frame_Upload.grid_columnconfigure((0, ), weight=1)
-
-        self.message_Logs = customtkinter.CTkTextbox(self.frame_Upload, state='disabled', height=100)
-        self.message_Logs.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky='ew')
-
-        # TODO: implement https://stackoverflow.com/questions/68738022/how-to-create-a-simple-progress-bar-loop-in-tkinter
-        self.progress_Flash = customtkinter.CTkProgressBar(self.frame_Upload, mode='determinate')
-        self.progress_Flash.grid(row=1, column=0, sticky='ew', padx=10, pady=10)
-
-        self.button_Flash = customtkinter.CTkButton(self.frame_Upload, text='Flash', width=10, command=self.flash_program)
-        self.button_Flash.grid(row=1, column=1, sticky='ew', padx=10, pady=10)
-
-        self.protocol('WM_DELETE_WINDOW', self.on_window_close)
-
-    def select_program(self):
-        program_path = customtkinter.filedialog.askopenfilename(filetypes=[('Intel HEX', 'hex')])
-        self.text_ProgramFile.configure(require_redraw=True, text=program_path)
-
-    def validate_integer(self, value):
-        # TODO: implement
-        return True
-
-    def clear_app_address(self):
-        self.input_AppAddress.delete(0, customtkinter.END)
-
-    def clear_serial_number(self):
-        self.input_SerialNumber.delete(0, customtkinter.END)
-
-    def log_message(self, text):
-        self.message_Logs.configure(state='normal')
-        self.message_Logs.insert(customtkinter.END, text)
-        self.message_Logs.insert(customtkinter.END, "\n")
-        self.message_Logs.configure(state='disabled')
-
-    def clear_logs(self):
-        self.message_Logs.configure(state='normal')
-        self.message_Logs.delete('0.0', customtkinter.END)
-        self.message_Logs.configure(state='disabled')
-
-    def set_progress(self, progress, maximum):
-        self.progress_Flash['value'] = 1
-        self.progress_Flash['maximum'] = 1
-        self.progress_Flash.update()
-        #self.progress_Flash.configure(require_redraw=True, background='blue')
-
-    def set_progress_error(self):
-        self.progress_Flash['value'] = 1
-        self.progress_Flash['maximum'] = 1
-        self.progress_Flash.update()
-        #self.progress_Flash.configure(require_redraw=True, background='red')
-
-    def flash_program(self):
-        # check conditions
-        # if no file -> error
-        # if the file doesn't exist -> error
-        #messagebox.showerror('Error', 'No program has been selected.')
-
-        # if no serial and no app -> error
-
-        program = self.text_ProgramFile.cget('text')
-        port = self.combo_PortSelect.get()
-        baudrate = self.combo_BaudSelect.get()
-        app_address = self.input_AppAddress.get()
-        serial_number = self.input_SerialNumber.get()
-
-        if not app_address.strip() and not serial_number.strip():
-            return
-
-        # At this point commit to flashing
-        self.button_Flash.configure(state='disabled')
-        self.clear_logs()
-
-        # 
+    def run(self):
         try:
-            with LineSerialTransport(port, baudrate=baudrate, one_wire=True) as transport:
+            with LineSerialTransport(self.port, baudrate=self.baudrate, one_wire=True) as transport:
+                self.log_message.emit(f"Opened port {self.port} at {self.baudrate} bps.")
                 master = LineMaster(transport)
                 flash_tool = FlashTool(master)
 
-                self.log_message('Entering boot mode.')
-                flash_tool.enter_bootloader(0xE,
-                                            int(app_address, base=0) if app_address.strip() else None,
-                                            int(serial_number, base=0) if serial_number.strip() else None)
+                flash_tool.enter_bootloader(self.boot_address,
+                                        app_address=self.app_address if self.app_address != 0 else None,
+                                        serial_number=self.serial_number if self.serial_number != 0 else None)
+                self.log_message.emit("Entered bootloader.")
+                
+                #flash_tool.flash_hex(self.boot_address, self.hex_file, progress_callback=self.on_progress)
+                try:
+                    time.sleep(1)
+                    for i in range(100):
+                        self.log_message.emit(f"Progress: {i}%")
+                        self.progress.emit(100, i)
+                        time.sleep(0.1)
+                    self.progress.emit(100, 100)
+                    self.log_message.emit("Flashing complete.")
+                except Exception as e:
+                    self.log_message.emit(f"Flashing failed: {type(e).__name__}")
+                    self.log_message.emit(str(e))
+                    self.failed.emit()
 
                 try:
-                    self.log_message(f"Flashing '{program}'")
-            #     #flash_tool.flash_hex(0xE, self.program_path)
-                except FileNotFoundError as exc:
-                    self.log_message(f"{exc}")
-                    self.set_progress_error()
+                    flash_tool.exit_bootloader(self.boot_address, app_address=self.app_address if self.app_address != 0 else None)
+                    self.log_message.emit("Exited bootloader.")
+                except Exception as e:
+                    self.log_message.emit(f"Failed to exit bootloader: {type(e).__name__}")
+                    self.log_message.emit(str(e))
+                    self.failed.emit()
 
-                self.log_message(f"Exiting boot mode.")
-                flash_tool.exit_bootloader(0xE,
-                                            int(app_address, base=0) if app_address.strip() else None)
+        except Exception as e:
+            self.log_message.emit(f"Flashing failed: {type(e).__name__}")
+            self.log_message.emit(str(e))
+            self.failed.emit()
 
-        except serial.SerialException as exc:
-            self.log_message(f"{exc}")
-            self.set_progress_error()
+        self.finished.emit()
 
-        self.button_Flash.configure(state='normal')
-        # scenarios
-        # 1. serial port cannot be used
-        # 2. boot entry fails
-        # 3. flash write fails
-        # 4. boot exit fails
-        # 5. communication errors
-        # 6. file doesnt exist, or bad
-
-        pass
-
-    def on_window_close(self):
-        if messagebox.askokcancel('Quit', 'A measurement is running, are you sure you want to quit?'):
-            self.destroy()
+threads = {}
 
 def main():
-    app = App()
-    #app.after(10, app.update_ui)
-    app.mainloop()
+    logging.basicConfig(level=logging.DEBUG)
 
-    return 0
+
+    app = QApplication([])
+    app.setApplicationName("FlashTool")
+    window = QWidget()
+
+    #flash_thread = FlashThread()
+
+    main_layout = QVBoxLayout()
+
+    transport_settings_panel = QHBoxLayout()
+    transport_settings_group = QGroupBox("Connection settings")
+    transport_settings_layout = QHBoxLayout()
+    transport_settings_group.setLayout(transport_settings_layout)
+    transport_settings_panel.addWidget(transport_settings_group)
+
+    # port selection
+    transport_port_combobox = QComboBox()
+    transport_port_combobox.addItems(["COM17", "COM18"])  # TODO: dynamic
+
+    transport_baud_spinbox = QSpinBox()
+    transport_baud_spinbox.setMaximum(19200)
+    transport_baud_spinbox.setMinimum(4800)
+    transport_baud_spinbox.setSingleStep(4800)
+    transport_baud_spinbox.setSuffix(" bps")
+    transport_baud_spinbox.setValue(19200)
+
+    transport_settings_layout.addWidget(transport_port_combobox)
+    transport_settings_layout.addWidget(transport_baud_spinbox)
+
+    connection_settings_panel = QHBoxLayout()
+
+    # Boot address
+    boot_address_group = QGroupBox("BootAddress")
+    boot_address_layout = QHBoxLayout()
+    boot_address_group.setLayout(boot_address_layout)
+    boot_address_spinbox = QSpinBox()
+    boot_address_spinbox.setMaximum(0xF)
+    boot_address_spinbox.setMinimum(0)
+    boot_address_spinbox.setSingleStep(1)
+    boot_address_spinbox.setPrefix("0x")
+    boot_address_spinbox.setValue(0xE)
+    boot_address_spinbox.setWhatsThis("Diagnostic address in boot mode")
+    boot_address_spinbox.setDisplayIntegerBase(16)
+    boot_address_layout.addWidget(boot_address_spinbox)
+
+    # App address
+    app_address_group = QGroupBox("AppAddress")
+    app_address_layout = QHBoxLayout()
+    app_address_group.setLayout(app_address_layout)
+    app_address_spinbox = QSpinBox()
+    app_address_spinbox.setMaximum(0xF)
+    app_address_spinbox.setMinimum(0)
+    app_address_spinbox.setSingleStep(1)
+    app_address_spinbox.setPrefix("0x")
+    app_address_spinbox.setValue(0)
+    app_address_spinbox.setWhatsThis("Application diagnostic address")
+    app_address_spinbox.setDisplayIntegerBase(16)
+    app_address_layout.addWidget(app_address_spinbox)
+
+    # Serial number
+    serial_number_group = QGroupBox("SerialNumber")
+    serial_number_layout = QHBoxLayout()
+    serial_number_group.setLayout(serial_number_layout)
+    serial_number_input = QLineEdit()
+    serial_number_input.setPlaceholderText("Serial number")
+    serial_number_layout.addWidget(serial_number_input)
+
+    connection_settings_panel.addWidget(boot_address_group)
+    connection_settings_panel.addWidget(app_address_group)
+    connection_settings_panel.addWidget(serial_number_group)
+
+    # File selector
+    file_selector_group = QGroupBox("Program")
+    file_selector_layout = QHBoxLayout()
+    file_selector_group.setLayout(file_selector_layout)
+
+    file_path_input = QLineEdit()
+    file_path_input.setPlaceholderText("Select a file...")
+
+    file_select_button = QPushButton("Choose")
+    file_select_button.clicked.connect(lambda: file_path_input.setText(QFileDialog.getOpenFileName(filter='*.hex')[0]))
+
+    file_selector_layout.addWidget(file_path_input)
+    file_selector_layout.addWidget(file_select_button)
+
+    # Flash button
+    flash_button = QPushButton("Flash")
+
+    # Logs
+    log_textedit = QTextEdit()
+    log_textedit.setReadOnly(True)
+
+    # Progress bar
+    progress_bar = QProgressBar()
+    progress_bar.setRange(0, 100)
+    progress_bar.setValue(0)
+    progress_bar.setTextVisible(True)
+
+    # Adding everything to main panel
+    main_layout.addLayout(transport_settings_panel)
+    main_layout.addLayout(connection_settings_panel)
+    main_layout.addWidget(file_selector_group)
+    main_layout.addWidget(flash_button)
+    main_layout.addWidget(log_textedit)
+    main_layout.addWidget(progress_bar)
+
+    def lock_ui():
+        flash_button.setEnabled(False)
+        transport_port_combobox.setEnabled(False)
+        transport_baud_spinbox.setEnabled(False)
+        boot_address_spinbox.setEnabled(False)
+        app_address_spinbox.setEnabled(False)
+        serial_number_input.setEnabled(False)
+        file_path_input.setEnabled(False)
+        file_select_button.setEnabled(False)
+    
+    def unlock_ui():
+        flash_button.setEnabled(True)
+        transport_port_combobox.setEnabled(True)
+        transport_baud_spinbox.setEnabled(True)
+        boot_address_spinbox.setEnabled(True)
+        app_address_spinbox.setEnabled(True)
+        serial_number_input.setEnabled(True)
+        file_path_input.setEnabled(True)
+        file_select_button.setEnabled(True)
+
+    def clear_logs():
+        log_textedit.clear()
+
+    def on_log(message):
+        log_textedit.append(message)
+
+    def on_progress(size, progress):
+        progress_bar.setValue(int(progress / size * 100))
+
+    def convert_to_int(value):
+        try:
+            return int(value, 0)
+        except ValueError:
+            return None
+
+    def end_flash():
+        unlock_ui()
+
+    def closeEvent(event):
+        if 'flash' in threads and threads['flash'].isRunning():
+            reply = QMessageBox.question(window, 'Message',
+                                            "Flashing is in progress. Are you sure you want to quit?",
+                                            QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()
+
+    def start_flash():
+        clear_logs()
+        lock_ui()
+
+        flash_thread = FlashThread()
+        threads['flash'] = flash_thread     # prevents garbage collection
+
+        flash_thread.port = transport_port_combobox.currentText()
+        flash_thread.baudrate = transport_baud_spinbox.value()
+        flash_thread.app_address = app_address_spinbox.value() if app_address_spinbox.value() != 0 else None
+        flash_thread.boot_address = boot_address_spinbox.value() if boot_address_spinbox.value() != 0 else None
+        flash_thread.serial_number = convert_to_int(serial_number_input.text())
+        flash_thread.hex_file = file_path_input.text()
+
+        flash_thread.log_message.connect(on_log)
+        flash_thread.progress.connect(on_progress)
+        flash_thread.finished.connect(end_flash)
+        flash_thread.start()
+
+    flash_button.clicked.connect(start_flash)
+
+    window.closeEvent = closeEvent
+    window.setLayout(main_layout)
+    window.show()
+    app.exec()
 
 if __name__ == '__main__':
     main()
