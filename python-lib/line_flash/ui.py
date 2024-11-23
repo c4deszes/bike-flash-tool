@@ -2,10 +2,32 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import QThread, pyqtSignal
 import time
 import logging
+import serial.tools.list_ports
 
 from line_flash.flash import FlashTool
 from line_protocol.protocol.master import LineMaster
 from line_protocol.protocol.transport import LineSerialTransport, LineTransportTimeout
+
+class PortDiscoveryThread(QThread):
+
+    ports_found = pyqtSignal(list)
+    stop = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._stopped = False
+
+    def close_thread(self):
+        self._stopped = True
+
+    def run(self):
+        self.stop.connect(self.close_thread)
+
+        while self._stopped is False:
+            ports = [x.device for x in serial.tools.list_ports.comports()]
+            self.ports_found.emit(ports)
+
+            time.sleep(5)
 
 class FlashThread(QThread):
     finished = pyqtSignal()
@@ -62,6 +84,7 @@ class FlashThread(QThread):
 
         self.finished.emit()
 
+port_discovery_thread = PortDiscoveryThread()
 threads = {}
 
 def main():
@@ -84,7 +107,9 @@ def main():
 
     # port selection
     transport_port_combobox = QComboBox()
-    transport_port_combobox.addItems(["COM17", "COM18"])  # TODO: dynamic
+    ports = serial.tools.list_ports.comports()
+
+    transport_port_combobox.addItems([x.device for x in ports])  # TODO: dynamic
 
     transport_baud_spinbox = QSpinBox()
     transport_baud_spinbox.setMaximum(19200)
@@ -221,7 +246,13 @@ def main():
             else:
                 event.ignore()
         else:
+            port_discovery_thread.stop.emit()
+
             event.accept()
+
+    def set_ports(port_list):
+        transport_port_combobox.clear()
+        transport_port_combobox.addItems(port_list)
 
     def start_flash():
         clear_logs()
@@ -243,6 +274,10 @@ def main():
         flash_thread.start()
 
     flash_button.clicked.connect(start_flash)
+
+    port_discovery_thread.ports_found.connect(set_ports)
+
+    port_discovery_thread.start()
 
     window.closeEvent = closeEvent
     window.setLayout(main_layout)
