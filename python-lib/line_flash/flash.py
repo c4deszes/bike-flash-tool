@@ -218,6 +218,7 @@ class FlashTool:
                     on_progess(size, progress, current_address, step_size)
 
                 # TODO: maybe add the ability to retry writes, unless it's address failure
+                # TODO: if status not written then wait for a bit and retry
                 status = self.get_write_status(address)
                 if status != FLASH_LINE_PAGE_WRITE_SUCCESS:
                     status_msg = writestatus_str(status)
