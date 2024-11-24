@@ -250,8 +250,13 @@ def main():
             event.accept()
 
     def set_ports(port_list):
+        current_selection = transport_port_combobox.currentText()
         transport_port_combobox.clear()
         transport_port_combobox.addItems(port_list)
+        if current_selection in port_list:
+            transport_port_combobox.setCurrentText(current_selection)
+        else:
+            transport_port_combobox.setCurrentIndex(0)
 
     def start_flash():
         clear_logs()
