@@ -19,6 +19,7 @@ FAKE_VALUE_FUNC0(uint8_t, LINE_Diag_GetOperationStatus);
 // Transport callbacks
 FAKE_VOID_FUNC3(LINE_Transport_OnError, bool, uint16_t, line_transport_error);
 FAKE_VOID_FUNC3(LINE_Transport_WriteResponse, uint8_t, uint8_t*, uint8_t);
+FAKE_VOID_FUNC1(LINE_Transport_WriteRequest, uint16_t);
 
 class TestFlashLineApplicationMode : public testing::Test {
 public:
