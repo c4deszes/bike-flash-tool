@@ -45,7 +45,6 @@ class FlashThread(QThread):
         self.serial_number = 0
         self.hex_file = None
 
-    # TODO: might need partial
     def on_progress(self, size, progress, current_address, step_size):
         self.progress.emit(size, progress)
 
@@ -109,7 +108,7 @@ def main():
     transport_port_combobox = QComboBox()
     ports = serial.tools.list_ports.comports()
 
-    transport_port_combobox.addItems([x.device for x in ports])  # TODO: dynamic
+    transport_port_combobox.addItems([x.device for x in ports])
 
     transport_baud_spinbox = QSpinBox()
     transport_baud_spinbox.setMaximum(19200)

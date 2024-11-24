@@ -53,15 +53,18 @@ class FlashTool:
 
             raise FlashBootException(f"Boot entry response invalid ({response}).")
 
-    def enter_bootloader(self, boot_address: int, app_address: int = None, serial_number: int = None):
+    def enter_bootloader(self, boot_address: int, app_address: int = None,
+                         serial_number: int = None, boot_time: float = 1.0):
         """
         Puts a target into boot mode
 
-        When app_address is provided the DIAG_BOOT_ENTRY request will be sent, otherwise the
-        target is expected to be in boot mode already.
+        When app_address is provided the DIAG_BOOT_ENTRY request will be sent, then the address is
+        changed to boot_address.
 
-        With either app_address or serial_number the target's diagnostic address will be set,
-        otherwise it has to be set beforehand.
+        When serial number is provided but app_address is not then the address is changed to
+        boot_address and only afterwards the DIAG_BOOT_ENTRY request is sent.
+
+        If nor app_address or serial number is provided then the target is assumed to be in boot mode
 
         Error is raised if the boot entry is rejected or the target isn't in boot or boot error mode
         at the end.
@@ -77,7 +80,7 @@ class FlashTool:
         try:
             if app_address is not None:
                 serial_number = self.boot_entry(app_address, serial_number)
-                time.sleep(1.0) # TODO: wait boot entry time
+                time.sleep(boot_time)
         except LineTransportTimeout:
             logger.info("Bootloader entry no response.")
 
@@ -87,8 +90,9 @@ class FlashTool:
 
             if app_address is None:
                 try:
+                    # Boot entry here could fail if the target is already in boot mode
                     self.boot_entry(boot_address, serial_number)
-                    time.sleep(1.0)
+                    time.sleep(boot_time)
                     self.master.conditional_change_address(serial_number, boot_address)
                 except LineTransportTimeout:
                     logger.info("Bootloader entry no response.")
@@ -96,9 +100,10 @@ class FlashTool:
         op_status = self.master.get_operation_status(boot_address)
 
         if op_status != 'boot' and op_status != 'boot_error':
-            logger.error("Bootloader didn't enter.")
-            # TODO: custom error type, message improvement
-            raise FlashBootException("Bootloader didn't enter")
+            logger.error("Bootloader didn't enter, status=%s", op_status)
+            raise FlashBootException(f"Bootloader didn't enter (status={op_status})")
+        
+        logger.info("Bootloader entry success, status=%s", op_status)
 
     def write_page(self, address: int, data_address: int, data: List[int]):
         """
@@ -124,7 +129,11 @@ class FlashTool:
         :rtype: int
         """
         response = self.master.request(FLASH_LINE_DIAG_APP_WRITE_STATUS | address)
-        # TODO: what if the response has 0 length or 2+?
+
+        if len(response) != 1:
+            logger.error("Write status response invalid.")
+            raise FlashWriteException("Write status response invalid.")
+
         logger.info("Write status %s", writestatus_str(response[0]))
 
         return response[0]
@@ -153,9 +162,8 @@ class FlashTool:
             op_status = self.master.get_operation_status(app_address)
 
             if op_status == 'boot' or op_status == 'boot_error':
-                logger.error("Bootloader didn't exit.")
-                # TODO: custom error type, message improvement
-                raise FlashBootException("Boot didn't exit.")
+                logger.error("Bootloader didn't exit, status=%s", op_status)
+                raise FlashBootException(f"Boot didn't exit (status={op_status})")
 
     def hex_size(self, path: str) -> int:
         """
@@ -210,10 +218,11 @@ class FlashTool:
                     on_progess(size, progress, current_address, step_size)
 
                 # TODO: maybe add the ability to retry writes, unless it's address failure
-                if self.get_write_status(address) != FLASH_LINE_PAGE_WRITE_SUCCESS:
-                    logger.error("Error writing page (0x%08X)", current_address)
-                    # TODO: custom error type, message improvement
-                    raise FlashWriteException('Error writing page.')
+                status = self.get_write_status(address)
+                if status != FLASH_LINE_PAGE_WRITE_SUCCESS:
+                    status_msg = writestatus_str(status)
+                    logger.error("Error writing page (0x%08X), status=%s", current_address, status_msg)
+                    raise FlashWriteException(f'Error writing page (address={current_address:08X}, size={step_size}, status={status_msg})')
 
                 current_address += step_size
         pass
