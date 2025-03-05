@@ -24,7 +24,7 @@ extern "C"
  * 
  * In bootloader mode, read and write operations are registered as well.
  */
-void FLASH_LINE_Init(uint8_t mode);
+void FLASH_LINE_Init(uint8_t diag_channel, uint8_t mode);
 
 #ifdef __cplusplus
 }

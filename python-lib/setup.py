@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name='line-flash',
-    version='0.1.0',
+    version='0.1.1',
     author="Balazs Eszes",
     author_email="c4deszes@gmail.com",
     description="Flashing tool and protocol for LINE devices",

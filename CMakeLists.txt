@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(
     line-flash-adapter
-    VERSION "0.1.0"
+    VERSION "0.1.1"
     LANGUAGES C CXX)
 
 option(FLASH_LINE_BUILD_TESTS "Enables library test cases" OFF)
 
 include(tools/cmake/CPM.cmake)
-CPMAddPackage("gh:c4deszes/bike-line-protocol@0.1.0")
+CPMAddPackage("gh:c4deszes/bike-line-protocol@0.2.0")
 
 add_library(flash-line-api INTERFACE)
 target_include_directories(flash-line-api INTERFACE

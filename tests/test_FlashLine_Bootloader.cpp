@@ -6,6 +6,7 @@ extern "C" {
     #include "flash_line_api.h"
 
     #include "line_protocol.h"
+    #include "line_tester.h"
 }
 
 DEFINE_FFF_GLOBALS;
@@ -14,23 +15,52 @@ FAKE_VALUE_FUNC0(fl_BootSignature_t*, FLASH_BL_ReadSignature);
 FAKE_VOID_FUNC3(FLASH_BL_OnPageWrite, uint32_t, uint8_t, uint8_t*);
 FAKE_VALUE_FUNC0(uint8_t, FLASH_BL_GetWriteStatus);
 
+// Diagnostic callbacks
 FAKE_VALUE_FUNC0(uint32_t, LINE_Diag_GetSerialNumber);
 FAKE_VALUE_FUNC0(LINE_Diag_SoftwareVersion_t*, LINE_Diag_GetSoftwareVersion);
 FAKE_VALUE_FUNC0(LINE_Diag_PowerStatus_t*, LINE_Diag_GetPowerStatus);
 FAKE_VALUE_FUNC0(uint8_t, LINE_Diag_GetOperationStatus);
 
 // Transport callbacks
-FAKE_VOID_FUNC3(LINE_Transport_OnError, bool, uint16_t, line_transport_error);
-FAKE_VOID_FUNC3(LINE_Transport_WriteResponse, uint8_t, uint8_t*, uint8_t);
-FAKE_VOID_FUNC1(LINE_Transport_WriteRequest, uint16_t);
+FAKE_VOID_FUNC4(LINE_Transport_OnError, uint8_t, bool, uint16_t, line_transport_error);
+FAKE_VOID_FUNC4(LINE_Transport_WriteResponse, uint8_t, uint8_t, uint8_t*, uint8_t);
+FAKE_VOID_FUNC2(LINE_Transport_WriteRequest, uint8_t, uint16_t);
+
+// Adapters to enable diagnostics over the transport layer
+bool LINE_Transport_RespondsTo(uint8_t channel, uint16_t request) {
+    return LINE_Diag_RespondsTo(channel, request);
+}
+
+bool LINE_Transport_PrepareResponse(uint8_t channel, uint16_t request, uint8_t* size, uint8_t* payload) {
+    return LINE_Diag_PrepareResponse(channel, request, size, payload);
+}
+
+void LINE_Transport_OnData(uint8_t channel, bool response, uint16_t request, uint8_t size, uint8_t* payload) {
+    if (!response) {
+        LINE_Diag_OnRequest(channel, request, size, payload);
+    }
+}
+
+#define UINT16_L(x) ((uint8_t)(x & 0xFF))
+#define UINT16_H(x) ((uint8_t)((x >> 8) & 0xFF))
+
+#define TEST_NODE_ADDRESS 0x5
+
+LINE_Diag_Config_t diag_config = {
+    .transport_channel = 0,
+    .address = TEST_NODE_ADDRESS,
+    .op_status = LINE_Diag_GetOperationStatus,
+    .power_status = LINE_Diag_GetPowerStatus,
+    .serial_number = LINE_Diag_GetSerialNumber,
+    .software_version = LINE_Diag_GetSoftwareVersion
+};
 
 class TestFlashLineBootloaderMode : public testing::Test {
 public:
     static void SetUpTestSuite() {
-        LINE_Transport_Init(false);
-        LINE_Diag_Init();
-        LINE_Diag_SetAddress(0x5);
-        FLASH_LINE_Init(FLASH_LINE_BOOTLOADER_MODE);
+        LINE_Transport_Init(0, false);
+        LINE_Diag_Init(0, &diag_config);
+        FLASH_LINE_Init(0, FLASH_LINE_BOOTLOADER_MODE);
 
         LINE_Diag_GetSerialNumber_fake.return_val = 0x12345678;
     }
@@ -43,9 +73,9 @@ protected:
 TEST_F(TestFlashLineBootloaderMode, ReadSignatureNull) {
     FLASH_BL_ReadSignature_fake.return_val = NULL;
 
-    uint8_t data[] = {0x55, 0x8E, 0x65};
-    for (int i = 0; i < sizeof(data); i++) {
-        LINE_Transport_Receive(data[i]);
+    BUILD_REQUEST(response, FLASH_LINE_DIAG_READ_SIGNATURE | TEST_NODE_ADDRESS);
+    for (int i = 0; i < sizeof(response); i++) {
+        LINE_Transport_Receive(0, response[i]);
     }
 
     EXPECT_EQ(FLASH_BL_ReadSignature_fake.call_count, 1);
@@ -60,9 +90,9 @@ TEST_F(TestFlashLineBootloaderMode, ReadSignatureValid) {
     };
     FLASH_BL_ReadSignature_fake.return_val = &signature;
 
-    uint8_t data[] = {0x55, 0x8E, 0x65};
-    for (int i = 0; i < sizeof(data); i++) {
-        LINE_Transport_Receive(data[i]);
+    BUILD_REQUEST(response, FLASH_LINE_DIAG_READ_SIGNATURE | TEST_NODE_ADDRESS);
+    for (int i = 0; i < sizeof(response); i++) {
+        LINE_Transport_Receive(0, response[i]);
     }
 
     EXPECT_EQ(FLASH_BL_ReadSignature_fake.call_count, 1);
@@ -71,13 +101,13 @@ TEST_F(TestFlashLineBootloaderMode, ReadSignatureValid) {
 }
 
 TEST_F(TestFlashLineBootloaderMode, PageWrite) {
-    uint8_t data[] = {0x55, 0x4E, 0x85, 4 + 16,
-                      0x78, 0x56, 0x34, 0x12,
-                      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                      0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-                      0x43};
-    for (int i = 0; i < sizeof(data); i++) {
-        LINE_Transport_Receive(data[i]);
+    BUILD_FRAME(response,
+                FLASH_LINE_DIAG_APP_WRITE_PAGE | TEST_NODE_ADDRESS,
+                0x78, 0x56, 0x34, 0x12,
+                0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F);
+    for (int i = 0; i < sizeof(response); i++) {
+        LINE_Transport_Receive(0, response[i]);
     }
 
     EXPECT_EQ(FLASH_BL_OnPageWrite_fake.call_count, 1);
@@ -90,14 +120,14 @@ TEST_F(TestFlashLineBootloaderMode, PageWrite) {
 TEST_F(TestFlashLineBootloaderMode, GetWriteStatus) {
     FLASH_BL_GetWriteStatus_fake.return_val = FLASH_LINE_PAGE_NOT_WRITTEN;
 
-    uint8_t data[] = {0x55, 0xCE, 0xA5};
-    for (int i = 0; i < sizeof(data); i++) {
-        LINE_Transport_Receive(data[i]);
+    BUILD_REQUEST(response, FLASH_LINE_DIAG_APP_WRITE_STATUS | TEST_NODE_ADDRESS);
+    for (int i = 0; i < sizeof(response); i++) {
+        LINE_Transport_Receive(0, response[i]);
     }
 
     EXPECT_EQ(FLASH_BL_GetWriteStatus_fake.call_count, 1);
-    EXPECT_EQ(LINE_Transport_WriteResponse_fake.arg0_val, 1);
-    EXPECT_EQ(LINE_Transport_WriteResponse_fake.arg1_val[0], FLASH_LINE_PAGE_NOT_WRITTEN);
+    EXPECT_EQ(LINE_Transport_WriteResponse_fake.arg1_val, 1);
+    EXPECT_EQ(LINE_Transport_WriteResponse_fake.arg2_val[0], FLASH_LINE_PAGE_NOT_WRITTEN);
 }
 
 int main(int argc, char **argv) {

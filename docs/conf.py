@@ -3,7 +3,7 @@ import sys, os
 project = "flash-line"
 copyright = "Balazs Eszes, 2023"
 author = "Balazs Eszes"
-version = '0.1'
+version = '0.1.1'
 
 sys.path.append(os.path.abspath("./_ext"))
 sys.path.append(os.path.abspath("../python-lib"))

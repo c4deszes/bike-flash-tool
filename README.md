@@ -26,10 +26,8 @@ The application can enter the bootloader by any means, the time duration shall b
 #include "flash_line_diag.h"
 
 void APP_Init() {
-    LINE_Transport_Init(true);
     LINE_AppInit();
-    LINE_Diag_SetAddress(0x6);
-    FLASH_LINE_Init(FLASH_LINE_APPLICATION_MODE);
+    FLASH_LINE_Init(LINE_DIAG_RotorSensor_CHANNEL, FLASH_LINE_APPLICATION_MODE);
 }
 
 uint8_t FLASH_BL_EnterBoot(void) {
@@ -59,9 +57,8 @@ may need to cache the whole sector, clear it then write back everything includin
 #include "flash_line_diag.h"
 
 void BL_Init() {
-    LINE_Transport_Init(true);
     LINE_AppInit();
-    FLASH_LINE_Init(FLASH_LINE_BOOTLOADER_MODE);
+    FLASH_LINE_Init(LINE_DIAG_RotorSensor_CHANNEL, FLASH_LINE_BOOTLOADER_MODE);
 }
 
 void FLASH_BL_OnPageWrite(uint32_t address, uint8_t* data, uint8_t size) {

@@ -32,12 +32,32 @@ typedef struct {
  */
 uint8_t FLASH_BL_EnterBoot(void);
 
+/**
+ * @brief Called when the signature is requested
+ * 
+ * @return fl_BootSignature_t* 
+ */
 fl_BootSignature_t* FLASH_BL_ReadSignature(void);
 
+/**
+ * @brief Called when a page write is requested
+ * 
+ * @param address Start address of the page
+ * @param size Size of the data to be written
+ * @param data Page content
+ */
 void FLASH_BL_OnPageWrite(uint32_t address, uint8_t size, uint8_t* data);
 
+/**
+ * @brief Called when the write status is requested
+ * 
+ * @return uint8_t Last page write status
+ */
 uint8_t FLASH_BL_GetWriteStatus(void);
 
+/**
+ * @brief Called when the bootloader mode is requested to be exited
+ */
 void FLASH_BL_ExitBoot(void);
 
 #ifdef __cplusplus

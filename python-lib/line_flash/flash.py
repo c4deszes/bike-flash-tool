@@ -33,7 +33,7 @@ class FlashTool:
         :param serial_number: Serial number of the target
         :type serial_number: int
         """
-        response = self.master.request(FLASH_LINE_DIAG_BOOT_ENTRY | address)
+        response = self.master.request(FLASH_LINE_DIAG_BOOT_ENTRY | address, wait=True, timeout=1)
 
         if len(response) == 4:
             received_serial = int.from_bytes(response, 'little')
@@ -85,7 +85,7 @@ class FlashTool:
             logger.info("Bootloader entry no response.")
 
         if serial_number is not None:
-            self.master.conditional_change_address(serial_number, boot_address)
+            self.master.conditional_change_address(serial_number, boot_address, wait=True, timeout=1)
             time.sleep(0.1)
 
             if app_address is None:
@@ -93,11 +93,11 @@ class FlashTool:
                     # Boot entry here could fail if the target is already in boot mode
                     self.boot_entry(boot_address, serial_number)
                     time.sleep(boot_time)
-                    self.master.conditional_change_address(serial_number, boot_address)
+                    self.master.conditional_change_address(serial_number, boot_address, wait=True, timeout=1)
                 except LineTransportTimeout:
                     logger.info("Bootloader entry no response.")
 
-        op_status = self.master.get_operation_status(boot_address)
+        op_status = self.master.get_operation_status(boot_address, wait=True, timeout=1)
 
         if op_status != 'boot' and op_status != 'boot_error':
             logger.error("Bootloader didn't enter, status=%s", op_status)
@@ -117,7 +117,7 @@ class FlashTool:
         :type data: List[int]
         """
         logger.info("Writing %08X to %08X", data_address, data_address + len(data))
-        self.master.send_data(FLASH_LINE_DIAG_APP_WRITE_PAGE | address, list(int.to_bytes(data_address, 4, 'little')) + data)
+        self.master.send_request(FLASH_LINE_DIAG_APP_WRITE_PAGE | address, list(int.to_bytes(data_address, 4, 'little')) + data, wait=True, timeout=1)
 
     def get_write_status(self, address: int) -> int:
         """
@@ -128,7 +128,7 @@ class FlashTool:
         :return: Write status code
         :rtype: int
         """
-        response = self.master.request(FLASH_LINE_DIAG_APP_WRITE_STATUS | address)
+        response = self.master.request(FLASH_LINE_DIAG_APP_WRITE_STATUS | address, wait=True, timeout=1)
 
         if len(response) != 1:
             logger.error("Write status response invalid.")
@@ -154,12 +154,12 @@ class FlashTool:
         :type exit_time: float, optional
         :raises RuntimeError: If the target has not entered application mode
         """
-        self.master.send_data(FLASH_LINE_DIAG_EXIT_BOOTLOADER | boot_address, [])
+        self.master.send_request(FLASH_LINE_DIAG_EXIT_BOOTLOADER | boot_address, [], wait=True, timeout=1)
         logger.info("Exiting bootloader.")
 
         if app_address != None and verify:
             time.sleep(exit_time)
-            op_status = self.master.get_operation_status(app_address)
+            op_status = self.master.get_operation_status(app_address, wait=True, timeout=1)
 
             if op_status == 'boot' or op_status == 'boot_error':
                 logger.error("Bootloader didn't exit, status=%s", op_status)

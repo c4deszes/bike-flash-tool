@@ -52,29 +52,30 @@ class FlashThread(QThread):
         try:
             with LineSerialTransport(self.port, baudrate=self.baudrate, one_wire=True) as transport:
                 self.log_message.emit(f"Opened port {self.port} at {self.baudrate} bps.")
-                master = LineMaster(transport)
-                flash_tool = FlashTool(master)
+                #master = LineMaster(transport)
+                with LineMaster(transport) as master:
+                    flash_tool = FlashTool(master)
 
-                flash_tool.enter_bootloader(self.boot_address,
-                                        app_address=self.app_address if self.app_address != 0 else None,
-                                        serial_number=self.serial_number if self.serial_number != 0 else None)
-                self.log_message.emit("Entered bootloader.")
+                    flash_tool.enter_bootloader(self.boot_address,
+                                            app_address=self.app_address if self.app_address != 0 else None,
+                                            serial_number=self.serial_number if self.serial_number != 0 else None)
+                    self.log_message.emit("Entered bootloader.")
 
-                try:
-                    flash_tool.flash_hex(self.boot_address, self.hex_file, on_progess=self.on_progress)
-                    self.log_message.emit("Flashing complete.")
-                except Exception as e:
-                    self.log_message.emit(f"Flashing failed: {type(e).__name__}")
-                    self.log_message.emit(str(e))
-                    self.failed.emit()
+                    try:
+                        flash_tool.flash_hex(self.boot_address, self.hex_file, on_progess=self.on_progress)
+                        self.log_message.emit("Flashing complete.")
+                    except Exception as e:
+                        self.log_message.emit(f"Flashing failed: {type(e).__name__}")
+                        self.log_message.emit(str(e))
+                        self.failed.emit()
 
-                try:
-                    flash_tool.exit_bootloader(self.boot_address, app_address=self.app_address if self.app_address != 0 else None)
-                    self.log_message.emit("Exited bootloader.")
-                except Exception as e:
-                    self.log_message.emit(f"Failed to exit bootloader: {type(e).__name__}")
-                    self.log_message.emit(str(e))
-                    self.failed.emit()
+                    try:
+                        flash_tool.exit_bootloader(self.boot_address, app_address=self.app_address if self.app_address != 0 else None)
+                        self.log_message.emit("Exited bootloader.")
+                    except Exception as e:
+                        self.log_message.emit(f"Failed to exit bootloader: {type(e).__name__}")
+                        self.log_message.emit(str(e))
+                        self.failed.emit()
 
         except Exception as e:
             self.log_message.emit(f"Failure: {type(e).__name__}")

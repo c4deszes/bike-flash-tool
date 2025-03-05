@@ -12,7 +12,6 @@ target_sources(test_FlashLine_App PRIVATE
 target_link_libraries(test_FlashLine_App PRIVATE
     flash-line-api flash-line-sources
     line-protocol-api line-protocol-sources
-    line-protocol-adapter-sources
 )
 add_test(test_FlashLine_App)
 
@@ -24,6 +23,5 @@ target_sources(test_FlashLine_Bootloader PRIVATE
 target_link_libraries(test_FlashLine_Bootloader PRIVATE
     flash-line-api flash-line-sources
     line-protocol-api line-protocol-sources
-    line-protocol-adapter-sources
 )
 add_test(test_FlashLine_Bootloader)
