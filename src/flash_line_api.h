@@ -24,13 +24,18 @@ typedef struct {
     uint16_t mcu_revision;
 } fl_BootSignature_t;
 
+typedef struct {
+    uint8_t entry_status;
+    uint32_t serial_number;
+} fl_BootEntryResponse_t;
+
 /**
  * @brief Called when boot entry is requested, the return code then determines whether the
  * peripheral will be following the instruction, or the error reason why it cannot enter that mode
  * 
- * @return uint8_t 
+ * @return fl_BootEntryResponse_t 
  */
-uint8_t FLASH_BL_EnterBoot(void);
+fl_BootEntryResponse_t FLASH_BL_EnterBoot(void);
 
 /**
  * @brief Called when the signature is requested

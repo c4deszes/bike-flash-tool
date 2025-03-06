@@ -5,14 +5,14 @@
 
 #include <stdlib.h>
 
-static bool _FLASH_LINE_EnterBoot_Handler(uint16_t request, uint8_t* size, uint8_t* payload) {
-    uint8_t entryStatus = FLASH_BL_EnterBoot();
+static uint8_t usedDiagChannel = 0;
 
-    if (entryStatus == FLASH_LINE_BOOT_ENTRY_SUCCESS) {
+static bool _FLASH_LINE_EnterBoot_Handler(uint16_t request, uint8_t* size, uint8_t* payload) {
+    fl_BootEntryResponse_t entryResponse = FLASH_BL_EnterBoot();
+
+    if (entryResponse.entry_status == FLASH_LINE_BOOT_ENTRY_SUCCESS) {
         *size = sizeof(uint32_t);
-        // TODO: somehow return the serial number
-        //uint32_t serial = LINE_Diag_GetSerialNumber();
-        uint32_t serial = 0x12345678;
+        uint32_t serial = entryResponse.serial_number;
         payload[0] = (uint8_t)(serial & 0xFF);
         payload[1] = (uint8_t)((serial >> 8) & 0xFF);
         payload[2] = (uint8_t)((serial >> 16) & 0xFF);
@@ -21,7 +21,7 @@ static bool _FLASH_LINE_EnterBoot_Handler(uint16_t request, uint8_t* size, uint8
     }
     else {
         *size = sizeof(uint8_t);
-        payload[0] = entryStatus;
+        payload[0] = entryResponse.entry_status;
         return true;
     }
 }
@@ -61,9 +61,11 @@ static void _FLASH_LINE_ExitBootloaderHandler(uint16_t request, uint8_t size, ui
 
 void FLASH_LINE_Init(uint8_t diag_channel, uint8_t mode) {
     if (mode == FLASH_LINE_APPLICATION_MODE) {
+        usedDiagChannel = diag_channel;
         LINE_Diag_RegisterUnicastPublisher(diag_channel, FLASH_LINE_DIAG_BOOT_ENTRY, _FLASH_LINE_EnterBoot_Handler);
     }
     else if (mode == FLASH_LINE_BOOTLOADER_MODE) {
+        usedDiagChannel = diag_channel;
         LINE_Diag_RegisterUnicastPublisher(diag_channel, FLASH_LINE_DIAG_READ_SIGNATURE, _FLASH_LINE_ReadSignature_Handler);
         LINE_Diag_RegisterUnicastListener(diag_channel, FLASH_LINE_DIAG_APP_WRITE_PAGE, _FLASH_LINE_OnPageWriteHandler);
         LINE_Diag_RegisterUnicastPublisher(diag_channel, FLASH_LINE_DIAG_APP_WRITE_STATUS, _FLASH_LINE_GetWriteStatusHandler);
