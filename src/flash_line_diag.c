@@ -75,10 +75,11 @@ void FLASH_LINE_Init(uint8_t diag_channel, uint8_t mode) {
 
 // TODO: add https://ninjalj.blogspot.com/2011/11/your-own-linker-warnings-using-gnu.html warning on defaults
 
-static uint8_t _FLASH_BL_EnterBoot_Default() {
-    return FLASH_LINE_BOOT_ENTRY_FAILURE;
+static fl_BootEntryResponse_t _FLASH_BL_EnterBoot_Default() {
+    fl_BootEntryResponse_t response = {.entry_status = FLASH_LINE_BOOT_ENTRY_FAILURE, .serial_number = 0};
+    return response;
 }
-uint8_t FLASH_BL_EnterBoot(void) __attribute__((weak,alias("_FLASH_BL_EnterBoot_Default")));
+fl_BootEntryResponse_t FLASH_BL_EnterBoot(void) __attribute__((weak,alias("_FLASH_BL_EnterBoot_Default")));
 
 static fl_BootSignature_t* _FLASH_BL_ReadSignature_Default(void) {
     return NULL;
