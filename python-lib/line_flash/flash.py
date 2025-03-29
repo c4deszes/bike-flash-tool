@@ -99,7 +99,7 @@ class FlashTool:
 
         op_status = self.master.get_operation_status(boot_address, wait=True, timeout=1)
 
-        if op_status != 'boot' and op_status != 'boot_error':
+        if op_status != 'Boot' and op_status != 'BootError':
             logger.error("Bootloader didn't enter, status=%s", op_status)
             raise FlashBootException(f"Bootloader didn't enter (status={op_status})")
         
@@ -189,6 +189,15 @@ class FlashTool:
         operations that will ideally line up with the page boundaries of the target, parts that
         are offset will result in non-aligned writes.
 
+        It's up to the target to support non-aligned writes, and writes that are smaller than the
+        page size.
+
+        The on_progess callback function is called with the following arguments:
+        - size: Total size of the hex file
+        - progress: Current progress in bytes
+        - current_address: Current address being written
+        - step_size: Size of the current write operation
+
         :param address: Diagnostic address of the target
         :type address: int
         :param path: Path to the Hex file
@@ -197,7 +206,9 @@ class FlashTool:
         :type page_size: int, optional
         :param write_time: Amount of time to wait in between write operations, defaults to 0.100
         :type write_time: float, optional
-        :raises RuntimeError: If there was an error writing a page
+        :param on_progess: Callback function to report progress, defaults to None
+        :type on_progess: function, optional
+        :raises FlashWriteException: If there was an error writing a page
         """
         binary = intelhex.IntelHex(path)
         size = self.hex_size(path)

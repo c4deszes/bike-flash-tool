@@ -81,6 +81,7 @@ class FlashThread(QThread):
             self.log_message.emit(f"Failure: {type(e).__name__}")
             self.log_message.emit(str(e))
             self.failed.emit()
+            logging.exception(e)
 
         self.finished.emit()
 
