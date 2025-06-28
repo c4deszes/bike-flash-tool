@@ -77,6 +77,8 @@ jobs:
 
       # TODO: results and coverage?
       
+# TODO: bundle pyinstaller
+
 # TODO: linting?
 
   sphinx_docs:

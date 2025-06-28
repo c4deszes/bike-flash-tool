@@ -11,7 +11,7 @@ extern "C" {
 
 DEFINE_FFF_GLOBALS;
 
-FAKE_VALUE_FUNC0(uint8_t, FLASH_BL_EnterBoot);
+FAKE_VALUE_FUNC0(fl_BootEntryResponse_t, FLASH_BL_EnterBoot);
 
 // Diagnostic callbacks
 FAKE_VALUE_FUNC0(uint32_t, LINE_Diag_GetSerialNumber);
@@ -69,7 +69,7 @@ protected:
 };
 
 TEST_F(TestFlashLineApplicationMode, BootEntrySuccess) {
-    FLASH_BL_EnterBoot_fake.return_val = FLASH_LINE_BOOT_ENTRY_SUCCESS;
+    FLASH_BL_EnterBoot_fake.return_val = {FLASH_LINE_BOOT_ENTRY_SUCCESS, 0x12345678};
 
     BUILD_REQUEST(response, FLASH_LINE_DIAG_BOOT_ENTRY | TEST_NODE_ADDRESS);
     for (int i = 0; i < sizeof(response); i++) {
@@ -86,7 +86,7 @@ TEST_F(TestFlashLineApplicationMode, BootEntrySuccess) {
 
 // TODO: this doesn't need to be tested here
 TEST_F(TestFlashLineApplicationMode, BootEntryNotTargeted) {
-    FLASH_BL_EnterBoot_fake.return_val = FLASH_LINE_BOOT_ENTRY_SUCCESS;
+    FLASH_BL_EnterBoot_fake.return_val = {FLASH_LINE_BOOT_ENTRY_SUCCESS, 0x12345678};
 
     BUILD_REQUEST(response, FLASH_LINE_DIAG_BOOT_ENTRY | (TEST_NODE_ADDRESS + 1));
     for (int i = 0; i < sizeof(response); i++) {
@@ -98,7 +98,7 @@ TEST_F(TestFlashLineApplicationMode, BootEntryNotTargeted) {
 }
 
 TEST_F(TestFlashLineApplicationMode, BootEntryFailure) {
-    FLASH_BL_EnterBoot_fake.return_val = FLASH_LINE_BOOT_ENTRY_NO_BL_PRESENT;
+    FLASH_BL_EnterBoot_fake.return_val = {FLASH_LINE_BOOT_ENTRY_NO_BL_PRESENT, 0x12345678};
 
     BUILD_REQUEST(response, FLASH_LINE_DIAG_BOOT_ENTRY | TEST_NODE_ADDRESS);
     for (int i = 0; i < sizeof(response); i++) {

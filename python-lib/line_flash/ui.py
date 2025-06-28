@@ -91,7 +91,6 @@ threads = {}
 def main():
     logging.basicConfig(level=logging.DEBUG)
 
-
     app = QApplication([])
     app.setApplicationName("FlashTool")
     window = QWidget()
@@ -110,7 +109,7 @@ def main():
     transport_port_combobox = QComboBox()
     ports = serial.tools.list_ports.comports()
 
-    transport_port_combobox.addItems([x.device for x in ports])
+    transport_port_combobox.addItems([""] + [x.device for x in ports])
 
     transport_baud_spinbox = QSpinBox()
     transport_baud_spinbox.setMaximum(19200)
@@ -172,7 +171,7 @@ def main():
     file_path_input = QLineEdit()
     file_path_input.setPlaceholderText("Select a file...")
 
-    file_select_button = QPushButton("Choose")
+    file_select_button = QPushButton("...")
     file_select_button.clicked.connect(lambda: file_path_input.setText(QFileDialog.getOpenFileName(filter='*.hex')[0]))
 
     file_selector_layout.addWidget(file_path_input)
@@ -254,7 +253,7 @@ def main():
     def set_ports(port_list):
         current_selection = transport_port_combobox.currentText()
         transport_port_combobox.clear()
-        transport_port_combobox.addItems(port_list)
+        transport_port_combobox.addItems([""] + port_list)
         if current_selection in port_list:
             transport_port_combobox.setCurrentText(current_selection)
         else:

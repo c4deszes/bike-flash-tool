@@ -165,7 +165,7 @@ class FlashTool:
                 logger.error("Bootloader didn't exit, status=%s", op_status)
                 raise FlashBootException(f"Boot didn't exit (status={op_status})")
 
-    def hex_size(self, path: str) -> int:
+    def hex_size(self, binary: intelhex.IntelHex) -> int:
         """
         Returns the size of the IntelHex file
 
@@ -174,7 +174,6 @@ class FlashTool:
         :return: Size of the file
         :rtype: int
         """
-        binary = intelhex.IntelHex(path)
         size = 0
         for (start, stop) in binary.segments():
             size += stop - start
@@ -211,7 +210,7 @@ class FlashTool:
         :raises FlashWriteException: If there was an error writing a page
         """
         binary = intelhex.IntelHex(path)
-        size = self.hex_size(path)
+        size = self.hex_size(binary)
         progress = 0
         for (start, stop) in binary.segments():
             current_address = start
