@@ -18,12 +18,18 @@ can decide whether it's going to, or not.
         LINE_FLASH_Init(DIAG_CHANNEL_NUMBER, LINE_FLASH_APPLICATION_MODE);
     }
 
-    uint8_t FLASH_BL_EnterBoot(void) {
+    fl_BootEntryResponse_t FLASH_BL_EnterBoot(void) {
+        fl_BootEntryResponse_t response;
+        response.serial_number = 0x12345678;
+
         if (app_movement_detected) {
-            return LINE_FLASH_BOOT_ENTRY_OP_UNSAFE;
+            response.entry_status = LINE_FLASH_BOOT_ENTRY_OP_UNSAFE;
         }
-        APP_ScheduleBootEntry();
-        return LINE_FLASH_BOOT_ENTRY_SUCCESS;
+        else {
+            APP_ScheduleBootEntry();
+            response.entry_status = LINE_FLASH_BOOT_ENTRY_SUCCESS;
+        }
+        return response;
     }
 
 Bootloader code

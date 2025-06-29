@@ -1,14 +1,29 @@
 cmake_minimum_required(VERSION 3.20)
+
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/library.properties" LIBRARY_PROPERTIES_CONTENT)
+string(REGEX MATCH "version=([^\n\r]+)" _ ${LIBRARY_PROPERTIES_CONTENT})
+set(LIBRARY_VERSION "${CMAKE_MATCH_1}")
+
 project(
     line-flash-adapter
-    VERSION "0.1.1"
+    VERSION ${LIBRARY_VERSION}
     LANGUAGES C CXX)
 
+################################################################################
+# Options
+################################################################################
 option(FLASH_LINE_BUILD_TESTS "Enables library test cases" OFF)
+option(FLASH_LINE_BUILD_DOCS "Enables library documentation" OFF)
 
+################################################################################
+# Dependencies
+################################################################################
 include(tools/cmake/CPM.cmake)
-CPMAddPackage("gh:c4deszes/bike-line-protocol@0.2.0")
+CPMAddPackage("gh:c4deszes/bike-line-protocol@0.3.0")
 
+################################################################################
+# Source code
+################################################################################
 add_library(flash-line-api INTERFACE)
 target_include_directories(flash-line-api INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -20,6 +35,9 @@ target_sources(flash-line-sources INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/flash_line_diag.c
 )
 
+################################################################################
+# Testing
+################################################################################
 if(FLASH_LINE_BUILD_TESTS)
     enable_testing()
     include(FetchContent)
@@ -38,16 +56,11 @@ if(FLASH_LINE_BUILD_TESTS)
 
     FetchContent_MakeAvailable(googletest fff)
     add_subdirectory(tests)
+endif()
 
-    add_custom_target(
-        coverage
-        COMMAND ${Python_EXECUTABLE} -m gcovr --html-self-contained --html-details ${CMAKE_BINARY_DIR}/coverage.html
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-    add_custom_target(
-        docs
-        COMMAND ${Python_EXECUTABLE} -m sphinx -b html -E ${CMAKE_CURRENT_SOURCE_DIR}/docs ${CMAKE_CURRENT_SOURCE_DIR}/docs/_build
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    )
+################################################################################
+# Documentation
+################################################################################
+if(FLASH_LINE_BUILD_DOCS)
+    add_subdirectory(docs)
 endif()

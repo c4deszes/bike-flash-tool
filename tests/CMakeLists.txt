@@ -4,6 +4,12 @@ function(add_test TARGET)
     gtest_discover_tests(${TARGET} DISCOVERY_MODE POST_BUILD)
 endfunction()
 
+add_custom_target(
+    coverage
+    COMMAND ${Python_EXECUTABLE} -m gcovr --html-self-contained --html-details ${CMAKE_BINARY_DIR}/coverage.html
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 ## Application mode tests
 add_executable(test_FlashLine_App EXCLUDE_FROM_ALL)
 target_sources(test_FlashLine_App PRIVATE

@@ -27,12 +27,16 @@ The application can enter the bootloader by any means, the time duration shall b
 
 void APP_Init() {
     LINE_AppInit();
-    FLASH_LINE_Init(LINE_DIAG_RotorSensor_CHANNEL, FLASH_LINE_APPLICATION_MODE);
+    FLASH_LINE_Init(LINE_DIAG_Peripheral_CHANNEL, FLASH_LINE_APPLICATION_MODE);
 }
 
-uint8_t FLASH_BL_EnterBoot(void) {
+fl_BootEntryResponse_t FLASH_BL_EnterBoot(void) {
+    fl_BootEntryResponse_t response;
     APP_ScheduleBootEntry();
-    return FLASH_LINE_BOOT_ENTRY_SUCCESS;
+
+    response.serial_number = 0x12345678;
+    response.entry_status = LINE_FLASH_BOOT_ENTRY_SUCCESS;
+    return response;
 }
 ```
 
