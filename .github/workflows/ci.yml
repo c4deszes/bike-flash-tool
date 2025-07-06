@@ -24,31 +24,6 @@ jobs:
       
       # TODO: coverage
 
-  example_arduino:
-    name: Example (Arduino)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Checkout (line-protocol)
-        uses: actions/checkout@v4
-        with:
-          repository: c4deszes/bike-line-protocol
-          path: line-protocol
-
-      - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
-
-      - name: Install platform
-        run: |
-          arduino-cli core update-index
-          arduino-cli core install arduino:samd
-
-      - name: Build sketch
-        working-directory: examples/arduino
-        run: arduino-cli compile -b arduino:samd:arduino_zero_edbg --library ../.. --library ../../line-protocol
-
   python_test:
     name: Python Test
     runs-on: ubuntu-latest

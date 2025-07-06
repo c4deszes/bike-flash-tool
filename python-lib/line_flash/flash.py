@@ -161,7 +161,7 @@ class FlashTool:
             time.sleep(exit_time)
             op_status = self.master.get_operation_status(app_address, wait=True, timeout=1)
 
-            if op_status == 'boot' or op_status == 'boot_error':
+            if op_status == 'Boot' or op_status == 'BootError':
                 logger.error("Bootloader didn't exit, status=%s", op_status)
                 raise FlashBootException(f"Boot didn't exit (status={op_status})")
 
