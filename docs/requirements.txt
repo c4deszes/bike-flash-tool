@@ -1,4 +1,5 @@
 Sphinx
+breathe
 ipython
 ipykernel
 jupyter-sphinx
