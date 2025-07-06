@@ -14,18 +14,22 @@ can decide whether it's going to, or not.
 .. code-block:: c
 
     void APP_Init() {
-        LINE_Transport_Init(true);
         LINE_App_Init();
-        LINE_Diag_Init(address);
-        LINE_FLASH_Init(LINE_FLASH_APPLICATION_MODE);
+        LINE_FLASH_Init(DIAG_CHANNEL_NUMBER, LINE_FLASH_APPLICATION_MODE);
     }
 
-    uint8_t FLASH_BL_EnterBoot(void) {
+    fl_BootEntryResponse_t FLASH_BL_EnterBoot(void) {
+        fl_BootEntryResponse_t response;
+        response.serial_number = 0x12345678;
+
         if (app_movement_detected) {
-            return LINE_FLASH_BOOT_ENTRY_OP_UNSAFE;
+            response.entry_status = LINE_FLASH_BOOT_ENTRY_OP_UNSAFE;
         }
-        APP_ScheduleBootEntry();
-        return LINE_FLASH_BOOT_ENTRY_SUCCESS;
+        else {
+            APP_ScheduleBootEntry();
+            response.entry_status = LINE_FLASH_BOOT_ENTRY_SUCCESS;
+        }
+        return response;
     }
 
 Bootloader code
@@ -37,9 +41,8 @@ status of those writes.
 .. code-block:: c
 
     void BOOT_Init() {
-        LINE_Transport_Init(true);
-        LINE_Diag_Init(address);
-        LINE_FLASH_Init(LINE_FLASH_BOOTLOADER_MODE);
+        LINE_App_Init();
+        LINE_FLASH_Init(DIAG_CHANNEL_NUMBER, LINE_FLASH_BOOTLOADER_MODE);
     }
 
     void FLASH_BL_OnPageWrite(uint32_t address, uint8_t* data) {
@@ -66,7 +69,6 @@ linked along with the line-protocol targets.
     CPMAddPackage("gh:c4deszes/bike-flash-tool#master")
 
     add_executable(MyApp src/main.c)
-    target_link_libraries(MyApp PUBLIC line-protocol-api line-protocol-sources
-                                       line-protocol-adapter-sources
+    target_link_libraries(MyApp PUBLIC ...
                                        flash-line-api flash-line-sources
     )

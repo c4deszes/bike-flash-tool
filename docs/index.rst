@@ -8,6 +8,7 @@ LINE Flashing tool
     protocol/index
     tools/index
     python/index
+    c_api/index
     qanda
 
 This flashing tool is used to reflash peripherals connected to a LINE bus.

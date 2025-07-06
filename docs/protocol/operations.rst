@@ -29,6 +29,24 @@ the flashing procedure to have failed.
 Read signature
 --------------
 
+.. note:: The signature feature is not finalized yet, it may change in the future. Currently
+          it is unused.
+
+          Proposed attributes are:
+          * Microcontroller identifier
+          * Microcontroller revision
+          * Bootloader version
+          * Bootloader variant
+          * Application version
+          * Application variant
+          * Page write time
+          * Supported page sizes
+          * Unaligned page write support
+          * Flash size
+          * Flash page size
+          * Flash page count
+          * Application valid
+
 Master requests ``0x0E6X``, the peripheral then responds with the device signature.
 
 The signature follows a structure:
